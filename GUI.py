@@ -225,7 +225,7 @@ class HealthvizApp(QMainWindow):
         logo_label.setFont(QFont("Segoe UI", 24))
         logo_label.setStyleSheet(f"color: {self.text_color};")
         
-        title_label = QLabel("Advanced AI Data Visualizer")
+        title_label = QLabel("Healthviz Visualizer")
         title_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
         title_label.setStyleSheet(f"color: {self.text_color};")
         
@@ -316,13 +316,15 @@ class HealthvizApp(QMainWindow):
         self.empty_state = QWidget()
         empty_layout = QVBoxLayout(self.empty_state)
         empty_layout.setAlignment(Qt.AlignCenter)
-        
+
+        empty_layout.addStretch(1)
         empty_label = QLabel("Select a visualization from the sidebar to begin")
         empty_label.setFont(QFont("Segoe UI", 14))
         empty_label.setStyleSheet("color: #6c757d;")
         empty_label.setAlignment(Qt.AlignCenter)
-        
+        empty_label.setMinimumHeight(300)  
         empty_layout.addWidget(empty_label)
+        empty_layout.addStretch(1)
         self.viz_stack.addWidget(self.empty_state)
         
         self.viz_widget = QWidget()
@@ -331,35 +333,43 @@ class HealthvizApp(QMainWindow):
     
     def create_sidebar_categories(self, parent_layout):
         categories = {
-            "Basic Distributions": [
-                ("Age Distribution", lambda: self.show_visualization(vis.plot_age_distribution)),
-                ("BMI Distribution", lambda: self.show_visualization(vis.plot_bmi_distribution)),
-                ("Sleep Distribution", lambda: self.show_visualization(vis.plot_sleep_distribution))
-            ],
-            "Comparative Analysis": [
-                ("BMI by Gender", lambda: self.show_visualization(vis.plot_bmi_by_gender)),
-                ("Exercise by Smoker", lambda: self.show_visualization(vis.plot_exercise_by_smoker)),
-                ("BMI vs Smoker by Gender", lambda: self.show_visualization(vis.plot_bmi_vs_smoker_by_gender)),
-                ("Alcohol by Gender", lambda: self.show_visualization(vis.plot_alcohol_kde_by_gender))
-            ],
-            "Correlation Analysis": [
-                ("Heatmap", lambda: self.show_visualization(vis.plot_heatmap)),
-                ("Advanced Correlation", lambda: self.show_visualization(vis.plot_advanced_correlation_heatmap)),
-                ("Clustermap", lambda: self.show_visualization(vis.plot_clustermap))
-            ],
-            "Multivariate Analysis": [
-                ("Steps vs BMI", lambda: self.show_visualization(vis.plot_steps_vs_bmi)),
-                ("BMI vs Age", lambda: self.show_visualization(vis.plot_bmi_vs_age)),
-                ("Alcohol vs Heart Rate", lambda: self.show_visualization(vis.plot_alcohol_vs_heart_rate))
-            ],
-            "Advanced Visualizations": [
-                ("FacetGrid Steps vs BMI", lambda: self.show_visualization(vis.plot_facetgrid_steps_vs_bmi)),
-                ("Radar Chart", lambda: self.show_visualization(vis.plot_radar_chart)),
-                ("Health Dashboard", lambda: self.show_visualization(vis.plot_health_dashboard)),
-                ("Sunburst Chart", lambda: self.show_visualization(vis.plot_sunburst))
-            ]
-        }
-        
+        "Basic Distributions": [
+            ("Age Distribution", lambda: self.show_visualization(vis.plot_age_distribution)),
+            ("BMI Distribution", lambda: self.show_visualization(vis.plot_bmi_distribution)),
+            ("Sleep Hours Distribution", lambda: self.show_visualization(vis.plot_sleep_distribution)),
+            ("Daily Steps Distribution", lambda: self.show_visualization(vis.plot_steps_distribution)),
+            ("Heart Rate Distribution", lambda: self.show_visualization(vis.plot_heart_rate_distribution))
+        ],
+        "Comparative Analysis": [
+            ("BMI by Gender", lambda: self.show_visualization(vis.plot_bmi_by_gender)),
+            ("Exercise Hours by Smoker Status", lambda: self.show_visualization(vis.plot_exercise_by_smoker)),
+            ("Sleep by Age Group", lambda: self.show_visualization(vis.plot_sleep_by_age_group)),
+            ("Alcohol Consumption by Gender", lambda: self.show_visualization(vis.plot_alcohol_kde_by_gender)),
+            ("Heart Rate by Diabetic Status", lambda: self.show_visualization(vis.plot_heart_rate_by_diabetic))
+        ],
+        "Correlation Analysis": [
+            ("Health Metrics Heatmap", lambda: self.show_visualization(vis.plot_health_metrics_heatmap)),
+            ("Lifestyle vs Vitals Correlation", lambda: self.show_visualization(vis.plot_lifestyle_vital_correlation)),
+            ("Clustermap of All Variables", lambda: self.show_visualization(vis.plot_clustermap)),
+            ("Age vs Health Indicators Correlation", lambda: self.show_visualization(vis.plot_age_health_correlation)),
+            ("Exercise Impact Analysis", lambda: self.show_visualization(vis.plot_exercise_impact_correlation))
+        ],
+        "Multivariate Analysis": [
+            ("Daily Steps vs BMI", lambda: self.show_visualization(vis.plot_steps_vs_bmi)),
+            ("BMI vs Age Scatter", lambda: self.show_visualization(vis.plot_bmi_vs_age)),
+            ("Alcohol vs Heart Rate", lambda: self.show_visualization(vis.plot_alcohol_vs_heart_rate)),
+            ("Sleep vs Exercise Hours", lambda: self.show_visualization(vis.plot_sleep_vs_exercise)),
+            ("Calorie Intake vs Weight", lambda: self.show_visualization(vis.plot_calories_vs_weight))
+        ],
+        "Advanced Visualizations": [
+            ("FacetGrid: Health Metrics by Gender", lambda: self.show_visualization(vis.plot_facetgrid_metrics_by_gender)),
+            ("Health Radar Chart", lambda: self.show_visualization(vis.plot_health_radar_chart)),
+            ("Comprehensive Health Dashboard", lambda: self.show_visualization(vis.plot_health_dashboard)),
+            ("Risk Factors Sunburst Chart", lambda: self.show_visualization(vis.plot_risk_factors_sunburst)),
+            ("3D Analysis: Age-BMI-Heart Rate", lambda: self.show_visualization(vis.plot_3d_health_analysis))
+        ]
+    }
+    
         for category, buttons in categories.items():
             section = CollapsibleSection(category)
             
@@ -377,7 +387,7 @@ class HealthvizApp(QMainWindow):
         footer_layout = QHBoxLayout(footer)
         footer_layout.setContentsMargins(15, 8, 15, 8)
         
-        version_label = QLabel("AI Visualizer v1.0")
+        version_label = QLabel("Healthviz")
         version_label.setFont(QFont("Segoe UI", 8))
         version_label.setStyleSheet(f"color: {self.text_color};")
         
@@ -464,14 +474,7 @@ class HealthvizApp(QMainWindow):
             self.close()
     
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, "Exit", 
-                                    "Are you sure you want to exit the application?",
-                                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
+        event.accept()
 
 def main():
     app = QApplication(sys.argv)

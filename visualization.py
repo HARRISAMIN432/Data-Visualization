@@ -4,6 +4,7 @@ from Dataset import df
 import numpy as np
 from matplotlib.gridspec import GridSpec
 import matplotlib.patches as mpatches
+import pandas as pd
     
 def plot_alcohol_vs_heart_rate():
     fig = plt.figure(figsize=(8,5))
@@ -212,3 +213,250 @@ def plot_sunburst():
     ax.legend(handles=legend_elements, bbox_to_anchor=(1, 0.5), loc='center left')
     plt.tight_layout()
     return fig
+
+# Additional Basic Distributions
+def plot_steps_distribution():
+    fig = plt.figure(figsize=(8,5))
+    sns.histplot(df['Daily_Steps'], bins=20, kde=True, color="purple")
+    plt.title("Daily Steps Distribution")
+    plt.xlabel("Daily Steps")
+    plt.ylabel("Count")
+    plt.tight_layout()
+    return fig
+
+def plot_heart_rate_distribution():
+    fig = plt.figure(figsize=(8,5))
+    sns.histplot(df['Heart_Rate'], bins=15, kde=True, color="crimson")
+    plt.title("Heart Rate Distribution")
+    plt.xlabel("Heart Rate (bpm)")
+    plt.ylabel("Count")
+    plt.tight_layout()
+    return fig
+
+# Additional Comparative Analysis
+def plot_sleep_by_age_group():
+    # Create age groups
+    df['Age_Group'] = pd.cut(df['Age'], bins=[0, 30, 50, 70, 100], labels=['<30', '30-50', '50-70', '70+'])
+    
+    fig = plt.figure(figsize=(10,6))
+    sns.boxplot(x="Age_Group", y="Hours_of_Sleep", data=df, palette="viridis")
+    plt.title("Sleep Hours by Age Group")
+    plt.xlabel("Age Group")
+    plt.ylabel("Hours of Sleep")
+    plt.tight_layout()
+    return fig
+
+def plot_heart_rate_by_diabetic():
+    fig = plt.figure(figsize=(8,5))
+    sns.boxplot(x="Diabetic", y="Heart_Rate", data=df, palette="RdYlBu")
+    plt.title("Heart Rate by Diabetic Status")
+    plt.xlabel("Diabetic Status")
+    plt.ylabel("Heart Rate (bpm)")
+    plt.tight_layout()
+    return fig
+
+# Additional Correlation Analysis
+def plot_health_metrics_heatmap():
+    health_metrics = ['BMI', 'Heart_Rate', 'Blood_Pressure', 'Hours_of_Sleep', 'Exercise_Hours_per_Week']
+    
+    # Extract systolic and diastolic blood pressure
+    df['Systolic'] = df['Blood_Pressure'].apply(lambda x: int(x.split('/')[0]))
+    df['Diastolic'] = df['Blood_Pressure'].apply(lambda x: int(x.split('/')[1]))
+    
+    metrics_df = df[['BMI', 'Heart_Rate', 'Systolic', 'Diastolic', 'Hours_of_Sleep', 'Exercise_Hours_per_Week']]
+    
+    fig = plt.figure(figsize=(10,8))
+    sns.heatmap(metrics_df.corr(), annot=True, cmap="YlGnBu", linewidths=0.5)
+    plt.title("Health Metrics Correlation Heatmap")
+    plt.tight_layout()
+    return fig
+
+def plot_lifestyle_vital_correlation():
+    # Lifestyle factors and vital signs
+    lifestyle = ['Daily_Steps', 'Calories_Intake', 'Exercise_Hours_per_Week', 'Alcohol_Consumption_per_Week']
+    
+    # Extract systolic and diastolic blood pressure
+    df['Systolic'] = df['Blood_Pressure'].apply(lambda x: int(x.split('/')[0]))
+    df['Diastolic'] = df['Blood_Pressure'].apply(lambda x: int(x.split('/')[1]))
+    
+    vitals = ['Heart_Rate', 'Systolic', 'Diastolic', 'BMI']
+    
+    fig = plt.figure(figsize=(10,8))
+    lifestyle_vital_df = df[lifestyle + vitals]
+    sns.heatmap(lifestyle_vital_df.corr(), annot=True, cmap="coolwarm", linewidths=0.5)
+    plt.title("Lifestyle vs Vital Signs Correlation")
+    plt.tight_layout()
+    return fig
+
+def plot_age_health_correlation():
+    health_indicators = ['Age', 'BMI', 'Heart_Rate', 'Hours_of_Sleep', 'Exercise_Hours_per_Week']
+    
+    fig = plt.figure(figsize=(12,8))
+    corr_matrix = df[health_indicators].corr()
+    mask = np.zeros_like(corr_matrix)
+    mask[np.triu_indices_from(mask)] = True
+    sns.heatmap(corr_matrix, mask=mask, annot=True, cmap="YlOrRd", linewidths=0.5)
+    plt.title("Age vs Health Indicators Correlation")
+    plt.tight_layout()
+    return fig
+
+def plot_exercise_impact_correlation():
+    impact_vars = ['Exercise_Hours_per_Week', 'BMI', 'Heart_Rate', 'Hours_of_Sleep', 'Daily_Steps']
+    
+    fig = plt.figure(figsize=(10,6))
+    impact_df = df[impact_vars]
+    sns.heatmap(impact_df.corr(), annot=True, cmap="PuBu", linewidths=0.5)
+    plt.title("Exercise Impact on Health Metrics")
+    plt.tight_layout()
+    return fig
+
+# Additional Multivariate Analysis
+def plot_sleep_vs_exercise():
+    fig = plt.figure(figsize=(10,6))
+    sns.scatterplot(x="Hours_of_Sleep", y="Exercise_Hours_per_Week", hue="Gender", size="Age", 
+                    sizes=(20, 200), palette="viridis", data=df)
+    plt.title("Sleep Hours vs Exercise Hours")
+    plt.xlabel("Hours of Sleep")
+    plt.ylabel("Exercise Hours per Week")
+    plt.tight_layout()
+    return fig
+
+def plot_calories_vs_weight():
+    fig = plt.figure(figsize=(10,6))
+    sns.scatterplot(x="Calories_Intake", y="Weight_kg", hue="Gender", style="Smoker", 
+                   size="Age", sizes=(30, 200), data=df)
+    plt.title("Calorie Intake vs Weight")
+    plt.xlabel("Daily Calorie Intake")
+    plt.ylabel("Weight (kg)")
+    plt.tight_layout()
+    return fig
+
+# Additional Advanced Visualizations
+def plot_facetgrid_metrics_by_gender():
+    g = sns.FacetGrid(df, col="Gender", height=5, aspect=1.2)
+    g.map_dataframe(sns.scatterplot, x="BMI", y="Heart_Rate", hue="Smoker", size="Age", sizes=(20, 200), alpha=0.7)
+    g.add_legend()
+    g.set_axis_labels("BMI", "Heart Rate")
+    g.set_titles("{col_name} Gender")
+    g.fig.suptitle("Health Metrics by Gender", y=1.05)
+    plt.tight_layout()
+    return g.fig
+
+def plot_health_radar_chart():
+    # Create radar chart comparing multiple people
+    fig = plt.figure(figsize=(12, 8))
+    
+    # Standardize values for better comparison
+    categories = ['BMI', 'Daily_Steps', 'Hours_of_Sleep', 'Heart_Rate', 'Exercise_Hours_per_Week']
+    
+    # Standardize the data for better comparison
+    df_std = df.copy()
+    for cat in categories:
+        df_std[cat] = (df[cat] - df[cat].min()) / (df[cat].max() - df[cat].min())
+    
+    # Number of people to compare
+    num_people = min(3, len(df))
+    
+    # Set up the radar chart
+    angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False).tolist()
+    angles += angles[:1]  # Close the loop
+    
+    ax = fig.add_subplot(111, polar=True)
+    
+    # Plot each person
+    colors = ['blue', 'green', 'red']
+    for i in range(num_people):
+        values = df_std.loc[i, categories].values.flatten().tolist()
+        values += values[:1]  # Close the loop
+        
+        ax.plot(angles, values, linewidth=2, color=colors[i], label=f"Person {df.loc[i, 'ID']}")
+        ax.fill(angles, values, color=colors[i], alpha=0.25)
+    
+    # Set the labels and title
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_title("Comparative Health Radar Chart")
+    plt.legend(loc='upper right')
+    
+    plt.tight_layout()
+    return fig
+
+def plot_risk_factors_sunburst():
+    # Define risk categories
+    df['BMI_Category'] = pd.cut(df['BMI'], 
+                               bins=[0, 18.5, 25, 30, 100], 
+                               labels=['Underweight', 'Normal', 'Overweight', 'Obese'])
+    
+    # Create a figure for sunburst chart
+    fig = plt.figure(figsize=(12, 12))
+    
+    # Create data for sunburst
+    grouped = df.groupby(['Gender', 'Smoker', 'BMI_Category']).size().reset_index(name='Count')
+    
+    # Set up colors
+    colors = plt.cm.tab20.colors
+    
+    # Create outer ring: Gender
+    outer_vals = grouped.groupby('Gender')['Count'].sum()
+    outer_labels = outer_vals.index
+    
+    # Create middle ring: Smoker status
+    mid_vals = grouped.groupby(['Gender', 'Smoker'])['Count'].sum().values
+    mid_labels = [f"{g} - {s}" for g, s in grouped.groupby(['Gender', 'Smoker']).groups.keys()]
+    
+    # Create inner ring: BMI Category
+    inner_vals = grouped['Count'].values
+    inner_labels = [f"{g} - {s} - {b}" for g, s, b in zip(grouped['Gender'], grouped['Smoker'], grouped['BMI_Category'])]
+    
+    # Create the plot
+    ax = fig.add_subplot(111)
+    
+    # Create the pie chart rings
+    ax.pie(outer_vals, radius=1.3, labels=outer_labels, 
+           colors=colors[:len(outer_vals)], 
+           wedgeprops=dict(width=0.3, edgecolor='w'))
+    
+    ax.pie(mid_vals, radius=1.0, labels=None,
+           colors=colors[len(outer_vals):len(outer_vals)+len(mid_vals)], 
+           wedgeprops=dict(width=0.3, edgecolor='w'))
+    
+    ax.pie(inner_vals, radius=0.7, labels=None,
+           colors=colors[len(outer_vals)+len(mid_vals):], 
+           wedgeprops=dict(width=0.3, edgecolor='w'))
+    
+    ax.set_title("Health Risk Factors Sunburst Chart", pad=20)
+    
+    # Add legend
+    plt.legend(title="Categories", loc="center left", bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    return fig
+
+def plot_3d_health_analysis():
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Extract systolic blood pressure
+    df['Systolic'] = df['Blood_Pressure'].apply(lambda x: int(x.split('/')[0]))
+    
+    # Set up colors based on gender
+    colors = {'Male': 'blue', 'Female': 'red'}
+    genders = df['Gender'].unique()
+    
+    # Plot 3D scatter
+    for gender in genders:
+        subset = df[df['Gender'] == gender]
+        ax.scatter(subset['Age'], subset['BMI'], subset['Heart_Rate'],
+                   c=subset['Gender'].map(colors), label=gender, s=100, alpha=0.7)
+    
+    # Add labels
+    ax.set_xlabel('Age')
+    ax.set_ylabel('BMI')
+    ax.set_zlabel('Heart Rate')
+    ax.set_title('3D Health Analysis: Age, BMI, and Heart Rate')
+    
+    # Add legend
+    ax.legend()
+    
+    plt.tight_layout()
+    return fig
+
