@@ -212,4 +212,3 @@ def plot_sunburst():
     ax.legend(handles=legend_elements, bbox_to_anchor=(1, 0.5), loc='center left')
     plt.tight_layout()
     return fig
-

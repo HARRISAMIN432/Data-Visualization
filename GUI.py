@@ -1,338 +1,491 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import sys
+import os
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QLabel, 
+                            QVBoxLayout, QHBoxLayout, QScrollArea, QSplitter, QFrame, 
+                            QMessageBox, QDialog, QTextEdit, QStackedWidget)
+from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtGui import QFont, QIcon, QColor, QPalette, QPixmap
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import visualization as vis
-from PIL import Image, ImageTk
-import webbrowser
 
-class AIVisualizerApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Healthviz visualizer")
-        self.root.geometry("1000x750")
-        self.root.configure(bg="#2c3e50")
-        self.root.minsize(800, 600)
+class CollapsibleSection(QWidget):
+    def __init__(self, title, parent=None):
+        super(CollapsibleSection, self).__init__(parent)
+        self.setObjectName("CollapsibleSection")
         
-        self.sidebar_visible = True
+        self.secondary_color = "#2c3e50"
+        self.text_color = "#ecf0f1"
+        self.hover_color = "#34495e"
+        
+        self.setStyleSheet(f"""
+            #CollapsibleSection {{
+                background-color: {self.secondary_color};
+                color: {self.text_color};
+                border: none;
+            }}
+            QPushButton {{
+                color: {self.text_color};
+                background-color: {self.secondary_color};
+                border: none;
+                padding: 8px;
+                text-align: left;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {self.hover_color};
+            }}
+        """)
+        
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)        
+        self.header_layout = QHBoxLayout()
+        self.header_layout.setContentsMargins(10, 5, 10, 5)        
+        self.title_button = QPushButton(title)
+        self.title_button.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.title_button.setCursor(Qt.PointingHandCursor)
+        self.title_button.clicked.connect(self.toggle_content)
+        self.toggle_button = QPushButton("▼")
+        self.toggle_button.setFixedWidth(24)
+        self.toggle_button.setFont(QFont("Segoe UI", 10))
+        self.toggle_button.setCursor(Qt.PointingHandCursor)
+        self.toggle_button.clicked.connect(self.toggle_content)
+        self.header_layout.addWidget(self.title_button)
+        self.header_layout.addWidget(self.toggle_button)
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(10, 5, 10, 5)
+        self.content_layout.setSpacing(5)
+        self.content_widget.setStyleSheet(f"background-color: {self.secondary_color};")        
+        self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.HLine)
+        self.separator.setFrameShadow(QFrame.Sunken)
+        self.separator.setStyleSheet(f"background-color: #34495e; max-height: 1px;")        
+        self.layout.addLayout(self.header_layout)
+        self.layout.addWidget(self.content_widget)
+        self.layout.addWidget(self.separator)        
+        self.is_expanded = True
+    
+    def toggle_content(self):
+        self.is_expanded = not self.is_expanded
+        self.content_widget.setVisible(self.is_expanded)
+        self.toggle_button.setText("▼" if self.is_expanded else "►")
+    
+    def add_button(self, text, callback):
+        button = QPushButton(text)
+        button.setFont(QFont("Segoe UI", 10))
+        button.setCursor(Qt.PointingHandCursor)
+        button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: #ecf0f1;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+                text-align: left;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #1a5276;
+            }
+        """)
+        button.clicked.connect(callback)
+        self.content_layout.addWidget(button)
+        return button
+
+class HelpDialog(QDialog):
+    def __init__(self, parent=None):
+        super(HelpDialog, self).__init__(parent)
+        self.setWindowTitle("Help Documentation")
+        self.setMinimumSize(600, 400)
+        self.setStyleSheet("background-color: #f5f7fa;")
+        
+        layout = QVBoxLayout(self)        
+        header = QLabel("Healthviz Visualizer Help Guide")
+        header.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        layout.addWidget(header)
+        help_text = QTextEdit()
+        help_text.setReadOnly(True)
+        help_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #ffffff;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                padding: 10px;
+                font-family: 'Segoe UI';
+                font-size: 11pt;
+            }
+        """)
+        
+        help_content = """
+<h2>Healthviz Visualizer Help Guide</h2>
+
+<h3>1. Navigation:</h3>
+<ul>
+    <li>Select visualizations from the categorized sidebar</li>
+    <li>Toggle sidebar visibility with the ≡ button</li>
+    <li>Collapse/expand categories by clicking the category headers</li>
+    <li>Use the visualization toolbar to interact with plots (zoom, pan, save)</li>
+</ul>
+
+<h3>2. Visualization Categories:</h3>
+<ul>
+    <li><b>Basic Distributions:</b> Univariate analysis</li>
+    <li><b>Comparative Analysis:</b> Group comparisons</li>
+    <li><b>Correlation Analysis:</b> Relationship matrices</li>
+    <li><b>Multivariate Analysis:</b> Multiple variable relationships</li>
+    <li><b>Advanced Visualizations:</b> Complex representations</li>
+</ul>
+
+<h3>3. Tips:</h3>
+<ul>
+    <li>Hover over data points in some visualizations for details</li>
+    <li>Use the save button to export visualizations</li>
+    <li>Larger datasets may take longer to render</li>
+    <li>Right-click on the visualization for additional options</li>
+</ul>
+        """
+        
+        help_text.setHtml(help_content)
+        layout.addWidget(help_text)
+        
+        close_button = QPushButton("Close")
+        close_button.setFont(QFont("Segoe UI", 10))
+        close_button.setCursor(Qt.PointingHandCursor)
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        close_button.clicked.connect(self.accept)
+        
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_button)
+        button_layout.addStretch()
+        
+        layout.addLayout(button_layout)
+
+class HealthvizApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        
         self.primary_color = "#3498db"
         self.secondary_color = "#2c3e50"
         self.accent_color = "#e74c3c"
         self.text_color = "#ecf0f1"
         self.light_bg = "#f5f7fa"
         
-        self.setup_styles()
-        self.setup_header()
-        self.setup_main_container()
-        self.setup_visualization_panel()
-        self.setup_sidebar()
-        self.setup_footer()
-        
-        self.current_viz_frame = None
-        
-    def setup_styles(self):
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        style.configure('TButton', 
-                       font=('Segoe UI', 10), 
-                       padding=6,
-                       relief='flat',
-                       background=self.primary_color,
-                       foreground=self.text_color)
-                       
-        style.map('TButton',
-                 foreground=[('pressed', self.text_color), ('active', self.text_color)],
-                 background=[('pressed', '#297fb8'), ('active', '#1a5276')])
-        
-        style.configure('Toggle.TButton', 
-                       font=('Segoe UI', 10),
-                       padding=4,
-                       relief='flat',
-                       background=self.accent_color)
-                       
-        style.map('Toggle.TButton',
-                 foreground=[('pressed', self.text_color), ('active', self.text_color)],
-                 background=[('pressed', '#c0392b'), ('active', '#e74c3c')])
-        
-        style.configure('Header.TLabel', 
-                      font=('Segoe UI', 24, 'bold'), 
-                      background=self.secondary_color,
-                      foreground=self.text_color)
-        
-        style.configure('Panel.TLabelframe', 
-                      font=('Segoe UI', 12, 'bold'), 
-                      background='#ffffff',
-                      foreground='#495057')
-        
-        style.configure('Viz.TFrame',
-                      background='#ffffff',
-                      borderwidth=2,
-                      relief='sunken')
-                      
-        style.configure('Category.TButton',
-                      font=('Segoe UI', 10),
-                      padding=6,
-                      relief='flat',
-                      background='#34495e',
-                      foreground=self.text_color)
-                      
-        style.map('Category.TButton',
-                 foreground=[('pressed', self.text_color), ('active', self.text_color)],
-                 background=[('pressed', '#2c3e50'), ('active', '#2c3e50')])
-                 
-        style.configure('Sidebar.TFrame', background=self.secondary_color)
-        style.configure('Main.TFrame', background='#ffffff')
-        style.configure('Footer.TFrame', background=self.secondary_color)
-        style.configure('Header.TFrame', background=self.secondary_color)
-        
-        style.configure('CategoryTitle.TLabel',
-                      font=('Segoe UI', 11, 'bold'),
-                      background=self.secondary_color,
-                      foreground=self.text_color)
+        self.init_ui()
     
-    def setup_header(self):
-        header_frame = ttk.Frame(self.root, style='Header.TFrame')
-        header_frame.pack(fill=tk.X)
+    def init_ui(self):
+        self.setWindowTitle("Healthviz Visualizer")
+        self.setMinimumSize(1000, 750)
+        self.setStyleSheet(f"background-color: {self.light_bg};")
         
-        self.logo_label = ttk.Label(header_frame, text="📊", font=('Segoe UI', 24),
-                                  background=self.secondary_color,
-                                  foreground=self.text_color)
-        self.logo_label.pack(side=tk.LEFT, padx=10, pady=10)
+        central_widget = QWidget()
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        self.setCentralWidget(central_widget)
         
-        self.header = ttk.Label(header_frame, text="Advanced AI Data Visualizer", 
-                              style='Header.TLabel')
-        self.header.pack(side=tk.LEFT, padx=10, pady=10)
+        self.create_header(main_layout)
         
-        self.toggle_sidebar_btn = ttk.Button(header_frame, text="≡", 
-                                          command=self.toggle_sidebar,
-                                          style='Toggle.TButton',
-                                          width=3)
-        self.toggle_sidebar_btn.pack(side=tk.RIGHT, padx=15, pady=10)
+        self.create_main_content(main_layout)
+        
+        self.create_footer(main_layout)
+        
+        self.show_empty_state()
+        
+        self.show()
     
-    def setup_main_container(self):
-        self.main_container = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        self.main_container.pack(fill=tk.BOTH, expand=True)
+    def create_header(self, parent_layout):
+        header = QWidget()
+        header.setStyleSheet(f"""
+            background-color: {self.secondary_color};
+            color: {self.text_color};
+            padding: 10px;
+        """)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(15, 10, 15, 10)
         
-        self.sidebar_panel = ttk.Frame(self.main_container, style='Sidebar.TFrame', width=250)
-        self.viz_panel = ttk.Frame(self.main_container, style='Main.TFrame')
+        logo_label = QLabel("📊")
+        logo_label.setFont(QFont("Segoe UI", 24))
+        logo_label.setStyleSheet(f"color: {self.text_color};")
         
-        self.main_container.add(self.sidebar_panel, weight=1)
-        self.main_container.add(self.viz_panel, weight=3)
+        title_label = QLabel("Advanced AI Data Visualizer")
+        title_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
+        title_label.setStyleSheet(f"color: {self.text_color};")
+        
+        header_layout.addWidget(logo_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        self.toggle_btn = QPushButton("≡")
+        self.toggle_btn.setFont(QFont("Segoe UI", 14))
+        self.toggle_btn.setCursor(Qt.PointingHandCursor)
+        self.toggle_btn.setFixedSize(40, 40)
+        self.toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.accent_color};
+                color: {self.text_color};
+                border: none;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #c0392b;
+            }}
+        """)
+        self.toggle_btn.clicked.connect(self.toggle_sidebar)
+        
+        header_layout.addWidget(self.toggle_btn)
+        parent_layout.addWidget(header)
     
-    def setup_sidebar(self):
-        self.sidebar_canvas = tk.Canvas(self.sidebar_panel, bg=self.secondary_color, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(self.sidebar_panel, orient="vertical", command=self.sidebar_canvas.yview)
-        self.scrollable_frame = ttk.Frame(self.sidebar_canvas, style='Sidebar.TFrame')
+    def create_main_content(self, parent_layout):
+        self.main_splitter = QSplitter(Qt.Horizontal)
         
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.sidebar_canvas.configure(scrollregion=self.sidebar_canvas.bbox("all")))
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(300)
+        self.sidebar.setStyleSheet(f"background-color: {self.secondary_color};")
         
-        self.sidebar_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw", width=230)
-        self.sidebar_canvas.configure(yscrollcommand=scrollbar.set)
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #34495e;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
+        """)
         
-        self.sidebar_canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        sidebar_content = QWidget()
+        self.sidebar_layout = QVBoxLayout(sidebar_content)
+        self.sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        self.sidebar_layout.setSpacing(0)
         
+        self.create_sidebar_categories(self.sidebar_layout)
+        
+        self.sidebar_layout.addStretch()
+        
+        sidebar_scroll.setWidget(sidebar_content)
+        
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.addWidget(sidebar_scroll)
+        
+        self.viz_panel = QWidget()
+        self.viz_panel.setStyleSheet("background-color: white;")
+        self.viz_layout = QVBoxLayout(self.viz_panel)
+        
+        self.main_splitter.addWidget(self.sidebar)
+        self.main_splitter.addWidget(self.viz_panel)
+        self.main_splitter.setStretchFactor(0, 0) 
+        self.main_splitter.setStretchFactor(1, 1)  
+        
+        parent_layout.addWidget(self.main_splitter)
+        
+        self.viz_stack = QStackedWidget()
+        self.viz_layout.addWidget(self.viz_stack)
+        
+        self.empty_state = QWidget()
+        empty_layout = QVBoxLayout(self.empty_state)
+        empty_layout.setAlignment(Qt.AlignCenter)
+        
+        empty_label = QLabel("Select a visualization from the sidebar to begin")
+        empty_label.setFont(QFont("Segoe UI", 14))
+        empty_label.setStyleSheet("color: #6c757d;")
+        empty_label.setAlignment(Qt.AlignCenter)
+        
+        empty_layout.addWidget(empty_label)
+        self.viz_stack.addWidget(self.empty_state)
+        
+        self.viz_widget = QWidget()
+        self.viz_widget_layout = QVBoxLayout(self.viz_widget)
+        self.viz_stack.addWidget(self.viz_widget)
+    
+    def create_sidebar_categories(self, parent_layout):
         categories = {
             "Basic Distributions": [
-                ("Age Distribution", vis.plot_age_distribution),
-                ("BMI Distribution", vis.plot_bmi_distribution),
-                ("Sleep Distribution", vis.plot_sleep_distribution)
+                ("Age Distribution", lambda: self.show_visualization(vis.plot_age_distribution)),
+                ("BMI Distribution", lambda: self.show_visualization(vis.plot_bmi_distribution)),
+                ("Sleep Distribution", lambda: self.show_visualization(vis.plot_sleep_distribution))
             ],
             "Comparative Analysis": [
-                ("BMI by Gender", vis.plot_bmi_by_gender),
-                ("Exercise by Smoker", vis.plot_exercise_by_smoker),
-                ("BMI vs Smoker by Gender", vis.plot_bmi_vs_smoker_by_gender),
-                ("Alcohol by Gender", vis.plot_alcohol_kde_by_gender)
+                ("BMI by Gender", lambda: self.show_visualization(vis.plot_bmi_by_gender)),
+                ("Exercise by Smoker", lambda: self.show_visualization(vis.plot_exercise_by_smoker)),
+                ("BMI vs Smoker by Gender", lambda: self.show_visualization(vis.plot_bmi_vs_smoker_by_gender)),
+                ("Alcohol by Gender", lambda: self.show_visualization(vis.plot_alcohol_kde_by_gender))
             ],
             "Correlation Analysis": [
-                ("Heatmap", vis.plot_heatmap),
-                ("Advanced Correlation", vis.plot_advanced_correlation_heatmap),
-                ("Clustermap", vis.plot_clustermap)
+                ("Heatmap", lambda: self.show_visualization(vis.plot_heatmap)),
+                ("Advanced Correlation", lambda: self.show_visualization(vis.plot_advanced_correlation_heatmap)),
+                ("Clustermap", lambda: self.show_visualization(vis.plot_clustermap))
             ],
             "Multivariate Analysis": [
-                ("Steps vs BMI", vis.plot_steps_vs_bmi),
-                ("BMI vs Age", vis.plot_bmi_vs_age),
-                ("Alcohol vs Heart Rate", vis.plot_alcohol_vs_heart_rate)
+                ("Steps vs BMI", lambda: self.show_visualization(vis.plot_steps_vs_bmi)),
+                ("BMI vs Age", lambda: self.show_visualization(vis.plot_bmi_vs_age)),
+                ("Alcohol vs Heart Rate", lambda: self.show_visualization(vis.plot_alcohol_vs_heart_rate))
             ],
             "Advanced Visualizations": [
-                ("FacetGrid Steps vs BMI", vis.plot_facetgrid_steps_vs_bmi),
-                ("Radar Chart", vis.plot_radar_chart),
-                ("Health Dashboard", vis.plot_health_dashboard),
-                ("Sunburst Chart", vis.plot_sunburst)
+                ("FacetGrid Steps vs BMI", lambda: self.show_visualization(vis.plot_facetgrid_steps_vs_bmi)),
+                ("Radar Chart", lambda: self.show_visualization(vis.plot_radar_chart)),
+                ("Health Dashboard", lambda: self.show_visualization(vis.plot_health_dashboard)),
+                ("Sunburst Chart", lambda: self.show_visualization(vis.plot_sunburst))
             ]
         }
         
-        self.category_frames = {}
-        
-        row = 0
         for category, buttons in categories.items():
-            category_frame = ttk.Frame(self.scrollable_frame, style='Sidebar.TFrame')
-            category_frame.grid(row=row, column=0, sticky='ew', padx=5)
-            row += 1
+            section = CollapsibleSection(category)
             
-            category_header = ttk.Frame(category_frame, style='Sidebar.TFrame')
-            category_header.pack(fill='x')
+            for button_text, callback in buttons:
+                section.add_button(button_text, callback)
             
-            cat_label = ttk.Label(category_header, text=category, style='CategoryTitle.TLabel')
-            cat_label.pack(side='left', pady=(15, 5), padx=5)
-            
-            toggle_btn = ttk.Button(category_header, text="▼", width=2, 
-                                  command=lambda c=category: self.toggle_category(c),
-                                  style='Toggle.TButton')
-            toggle_btn.pack(side='right', pady=(15, 5), padx=5)
-            
-            content_frame = ttk.Frame(category_frame, style='Sidebar.TFrame')
-            content_frame.pack(fill='x')
-            
-            self.category_frames[category] = (content_frame, toggle_btn)
-            
-            for text, command in buttons:
-                btn_frame = ttk.Frame(content_frame, style='Sidebar.TFrame')
-                btn_frame.pack(fill='x', pady=2)
-                
-                btn = ttk.Button(btn_frame, text=text, 
-                               command=lambda cmd=command: self.show_visualization(cmd),
-                               style='TButton')
-                btn.pack(fill='x', padx=10)
-            
-            if category != list(categories.keys())[-1]:
-                ttk.Separator(self.scrollable_frame, orient='horizontal').grid(
-                    row=row, column=0, pady=5, sticky='ew', padx=10)
-                row += 1
+            parent_layout.addWidget(section)
     
-    def toggle_category(self, category):
-        content_frame, toggle_btn = self.category_frames[category]
+    def create_footer(self, parent_layout):
+        footer = QWidget()
+        footer.setStyleSheet(f"""
+            background-color: {self.secondary_color};
+            color: {self.text_color};
+        """)
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(15, 8, 15, 8)
         
-        if content_frame.winfo_viewable():
-            content_frame.pack_forget()
-            toggle_btn.configure(text="►")
-        else:
-            content_frame.pack(fill='x')
-            toggle_btn.configure(text="▼")
-            
-        self.sidebar_canvas.configure(scrollregion=self.sidebar_canvas.bbox("all"))
-    
-    def toggle_sidebar(self):
-        if self.sidebar_visible:
-            self.main_container.forget(self.sidebar_panel)
-            self.toggle_sidebar_btn.configure(text="≡")
-            self.sidebar_visible = False
-        else:
-            self.main_container.insert(0, self.sidebar_panel, weight=1)
-            self.toggle_sidebar_btn.configure(text="◀")
-            self.sidebar_visible = True
-    
-    def setup_visualization_panel(self):
-        self.viz_empty_label = ttk.Label(
-            self.viz_panel, 
-            text="Select a visualization from the sidebar to begin",
-            font=('Segoe UI', 12),
-            background='#ffffff',
-            foreground='#6c757d'
-        )
-        self.viz_empty_label.pack(expand=True)
+        version_label = QLabel("AI Visualizer v1.0")
+        version_label.setFont(QFont("Segoe UI", 8))
+        version_label.setStyleSheet(f"color: {self.text_color};")
         
-        self.viz_canvas_frame = None
-        self.toolbar_frame = None
+        footer_layout.addWidget(version_label)
+        footer_layout.addStretch()
+        
+        help_button = QPushButton("Help")
+        help_button.setFont(QFont("Segoe UI", 10))
+        help_button.setCursor(Qt.PointingHandCursor)
+        help_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.primary_color};
+                color: {self.text_color};
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #2980b9;
+            }}
+        """)
+        help_button.clicked.connect(self.show_help)
+        
+        exit_button = QPushButton("Exit")
+        exit_button.setFont(QFont("Segoe UI", 10))
+        exit_button.setCursor(Qt.PointingHandCursor)
+        exit_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.primary_color};
+                color: {self.text_color};
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #2980b9;
+            }}
+        """)
+        exit_button.clicked.connect(self.close_application)
+        
+        footer_layout.addWidget(help_button)
+        footer_layout.addWidget(exit_button)
+        
+        parent_layout.addWidget(footer)
+    
+    def show_empty_state(self):
+        self.viz_stack.setCurrentWidget(self.empty_state)
     
     def show_visualization(self, viz_function):
-        if self.current_viz_frame:
-            self.current_viz_frame.destroy()
-        if self.toolbar_frame:
-            self.toolbar_frame.destroy()
-        if self.viz_empty_label.winfo_ismapped():
-            self.viz_empty_label.pack_forget()
-        
         try:
-            self.current_viz_frame = ttk.Frame(self.viz_panel)
-            self.current_viz_frame.pack(fill=tk.BOTH, expand=True)
+            while self.viz_widget_layout.count():
+                item = self.viz_widget_layout.takeAt(0)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
             
             fig = viz_function()
             
-            canvas = FigureCanvasTkAgg(fig, master=self.current_viz_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            canvas = FigureCanvas(fig)
+            self.viz_widget_layout.addWidget(canvas)
             
-            self.toolbar_frame = ttk.Frame(self.viz_panel)
-            self.toolbar_frame.pack(fill=tk.X)
-            toolbar = NavigationToolbar2Tk(canvas, self.toolbar_frame)
-            toolbar.update()
+            toolbar = NavigationToolbar(canvas, self.viz_widget)
+            self.viz_widget_layout.addWidget(toolbar)
+            
+            self.viz_stack.setCurrentWidget(self.viz_widget)
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to generate visualization:\n{str(e)}")
-            if self.current_viz_frame:
-                self.current_viz_frame.destroy()
-            self.viz_empty_label.pack(expand=True)
+            QMessageBox.critical(self, "Error", f"Failed to generate visualization:\n{str(e)}")
+            self.show_empty_state()
     
-    def setup_footer(self):
-        footer_frame = ttk.Frame(self.root, style='Footer.TFrame')
-        footer_frame.pack(fill=tk.X)
-        
-        exit_btn = ttk.Button(footer_frame, text="Exit", command=self.on_exit,
-                            style='TButton')
-        exit_btn.pack(side=tk.RIGHT, padx=10, pady=8)
-        
-        docs_btn = ttk.Button(footer_frame, text="Help", command=self.show_help,
-                            style='TButton')
-        docs_btn.pack(side=tk.RIGHT, padx=5, pady=8)
-        
-        version_label = ttk.Label(footer_frame, text="AI Visualizer v1.0",
-                                font=('Segoe UI', 8),
-                                foreground=self.text_color,
-                                background=self.secondary_color)
-        version_label.pack(side=tk.LEFT, padx=10, pady=8)
+    def toggle_sidebar(self):
+        if self.sidebar.isVisible():
+            self.sidebar.hide()
+            self.toggle_btn.setText("≡")
+        else:
+            self.sidebar.show()
+            self.toggle_btn.setText("◀")
     
     def show_help(self):
-        help_window = tk.Toplevel(self.root)
-        help_window.title("Help Documentation")
-        help_window.geometry("600x400")
-        help_window.configure(bg=self.light_bg)
-        
-        help_frame = ttk.Frame(help_window)
-        help_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        help_header = ttk.Label(help_frame, text="AI Data Visualizer Help Guide", 
-                             font=('Segoe UI', 16, 'bold'),
-                             background=self.light_bg)
-        help_header.pack(pady=10)
-        
-        text = tk.Text(help_frame, wrap=tk.WORD, padx=10, pady=10,
-                     font=('Segoe UI', 10),
-                     background=self.light_bg,
-                     borderwidth=0)
-        text.pack(fill=tk.BOTH, expand=True)
-        
-        help_text = """Healthviz Visualizer Help Guide
-
-1. Navigation:
-- Select visualizations from the categorized sidebar
-- Toggle sidebar visibility with the ≡ button
-- Collapse/expand categories by clicking ▼/► buttons
-- Use the toolbar to interact with plots (zoom, pan, save)
-
-2. Visualization Categories:
-- Basic Distributions: Univariate analysis
-- Comparative Analysis: Group comparisons
-- Correlation Analysis: Relationship matrices
-- Multivariate Analysis: Multiple variable relationships
-- Advanced Visualizations: Complex representations
-
-3. Tips:
-- Hover over data points in some visualizations for details
-- Use the save button to export visualizations
-- Larger datasets may take longer to render
-"""
-        text.insert(tk.END, help_text)
-        text.config(state=tk.DISABLED)
-        
-        close_btn = ttk.Button(help_frame, text="Close", 
-                             command=help_window.destroy,
-                             style='TButton')
-        close_btn.pack(pady=10)
+        help_dialog = HelpDialog(self)
+        help_dialog.exec_()
     
-    def on_exit(self):
-        if messagebox.askyesno("Exit", "Are you sure you want to exit the application?"):
-            self.root.quit()
+    def close_application(self):
+            self.close()
+    
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, "Exit", 
+                                    "Are you sure you want to exit the application?",
+                                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
+def main():
+    app = QApplication(sys.argv)
+    app.setStyle('Fusion')  
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor("#f5f7fa"))
+    palette.setColor(QPalette.WindowText, QColor("#2c3e50"))
+    palette.setColor(QPalette.Base, QColor("#ffffff"))
+    palette.setColor(QPalette.AlternateBase, QColor("#f5f7fa"))
+    palette.setColor(QPalette.Button, QColor("#3498db"))
+    palette.setColor(QPalette.ButtonText, QColor("#ffffff"))
+    palette.setColor(QPalette.Link, QColor("#3498db"))
+    app.setPalette(palette)
+    
+    window = HealthvizApp()
+    sys.exit(app.exec_())
 
