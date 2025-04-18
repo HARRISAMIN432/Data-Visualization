@@ -146,32 +146,26 @@ def plot_radar_chart(index=0):
     plt.tight_layout()
     return fig
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.gridspec import GridSpec
+
 def plot_health_dashboard():
-    fig = plt.figure(figsize=(16, 12))
-    gs = GridSpec(3, 3, figure=fig)    
+    fig = plt.figure(figsize=(16, 6))  
+    gs = GridSpec(1, 3, figure=fig, wspace=0.4) 
     ax1 = fig.add_subplot(gs[0, 0])
     sns.scatterplot(x='Age', y='BMI', hue='Gender', data=df, ax=ax1)
-    ax1.set_title('Age vs BMI')
+    ax1.set_title('Age vs BMI', fontsize=13)
     ax2 = fig.add_subplot(gs[0, 1])
-    sns.boxplot(x='Gender', y='Daily_Steps', data=df, ax=ax2)
-    ax2.set_title('Daily Steps by Gender')    
+    sns.kdeplot(data=df, x='Hours_of_Sleep', y='Exercise_Hours_per_Week',
+                cmap='Purples', fill=True, ax=ax2)
+    ax2.set_title('Sleep vs Exercise Hours', fontsize=13)
     ax3 = fig.add_subplot(gs[0, 2])
-    sns.kdeplot(data=df, x='Hours_of_Sleep', y='Exercise_Hours_per_Week', 
-                cmap='Blues', fill=True, ax=ax3)
-    ax3.set_title('Sleep vs Exercise Hours')    
-    ax4 = fig.add_subplot(gs[1, :2])
-    sns.scatterplot(x='BMI', y='Heart_Rate', size='Age', hue='Smoker', 
-                    sizes=(20, 200), data=df, ax=ax4)
-    ax4.set_title('Health Risk Matrix (BMI vs Heart Rate)')    
-    ax5 = fig.add_subplot(gs[1, 2])
-    sns.barplot(x='Smoker', y='Alcohol_Consumption_per_Week', 
-                hue='Gender', data=df, ax=ax5)
-    ax5.set_title('Alcohol Consumption by Smoking Status')    
-    ax6 = fig.add_subplot(gs[2, :])
-    sns.heatmap(df.select_dtypes(include=['number']).corr(), 
-                annot=True, cmap='coolwarm', ax=ax6)
-    ax6.set_title('Feature Correlation Matrix')    
+    ax3 = fig.add_subplot(gs[0, 2])
+    sns.boxplot(x='Gender', y='Daily_Steps', data=df, ax=ax3)
+    ax3.set_title('Daily Steps by Gender', fontsize=13)
     plt.tight_layout()
+    fig.suptitle('Simplified Health Dashboard', fontsize=16, weight='bold', y=1.02)
     return fig
 
 def plot_sunburst():
